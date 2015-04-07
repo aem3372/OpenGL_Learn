@@ -130,7 +130,47 @@ void renderInit(GLFWwindow* window) {
 	glBufferData(GL_ARRAY_BUFFER, sizeof(g_color_buffer_data), g_color_buffer_data, GL_STATIC_DRAW);
 }
 
-void render(GLFWwindow* window) {
+void updateFromInput(GLFWwindow* window, double time) {
+	static float speed = 100.0f;
+	static float anglespeed = 2000.0f;
+
+	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+	{
+		walk(speed * time);
+	}
+	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+	{
+		walk(-speed * time);
+	}
+	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+	{
+		strafe(-speed * time);
+	}
+	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+	{
+		strafe(speed * time);
+	}
+	if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
+	{
+		yaw(anglespeed * time);
+	}
+	if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
+	{
+		yaw(-anglespeed * time);
+	}
+	if (glfwGetKey(window, GLFW_KEY_Z) == GLFW_PRESS)
+	{
+		roll(-anglespeed * time);
+	}
+	if (glfwGetKey(window, GLFW_KEY_M) == GLFW_PRESS)
+	{
+		roll(anglespeed * time);
+	}
+}
+
+void render(GLFWwindow* window, double time) {
+
+	updateFromInput(window, time);
 
 	glEnableVertexAttribArray(0);
 	glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
@@ -164,15 +204,11 @@ void render(GLFWwindow* window) {
 	glm::mat4 Projection = glm::perspective(45.0f, 4.0f / 3.0f, 0.1f, 100.0f);
 	// Camera matrix
 	glm::mat4 View = getCameraViewMatrix();
-	glm::mat4 View2 = glm::lookAt(glm::vec3(4, 0, 0),
-			   					  glm::vec3(0, 0, 0),
-								  glm::vec3(0, 1, 0));
 	// Model matrix : an identity matrix (model will be at the origin)
-	glm::mat4 Model = glm::mat4(1.0f);  // Changes for each model !
+	glm::mat4 Model = glm::translate(0.0f, 0.0f, -3.0f);  // Changes for each model !
 	// Our ModelViewProjection : multiplication of our 3 matrices
 	glm::mat4 MVP = Projection * View * Model; // Remember, matrix multiplication is the other way around
 
-	
 	// Get a handle for our "MVP" uniform.
 	// Only at initialisation time.
 	GLuint MatrixID = glGetUniformLocation(programID, "MVP");
@@ -190,6 +226,20 @@ void render(GLFWwindow* window) {
 
 void destoryCallback(GLFWwindow* window) {
 	glDeleteBuffers(1, &vertexbuffer);
+}
+
+void updateFps()
+{
+	static int fc = 0;
+	static double time = glfwGetTime();
+	fc++;
+	if (fc > 500)
+	{
+		double now = glfwGetTime();
+		printf("FPS: %.2f\n", 500 / (now - time));
+		time = now;
+		fc = 0;
+	}
 }
 
 int main() {
@@ -213,9 +263,16 @@ int main() {
 	glfwSetWindowCloseCallback(window, destoryCallback);
 	renderInit(window);
 
+	double lasttime = glfwGetTime();
+
 	while (!glfwWindowShouldClose(window))
 	{
-		render(window);
+		double nowtime = glfwGetTime();
+		render(window, (nowtime - lasttime) / 100);
+		lasttime = nowtime;
+
+		updateFps();
+
 		glfwSwapBuffers(window);
 		glfwPollEvents();
 	}
