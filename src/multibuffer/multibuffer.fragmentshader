@@ -1,0 +1,11 @@
+#version 330 core
+
+in vec3 fragmentColor;
+
+void main() {
+    gl_FragData[0] = vec4(fragmentColor, 1.0f);
+    float grey = dot(fragmentColor.rgb, vec3(0.3, 0.59, 0.11));
+    gl_FragData[1] = vec4(grey, grey, grey, 1.0f);
+    float grey2 = dot(fragmentColor.rgb, vec3(0.9, 0.05, 0.05));
+    gl_FragData[2] = vec4(grey2, grey2, grey2, 1.0f);
+}

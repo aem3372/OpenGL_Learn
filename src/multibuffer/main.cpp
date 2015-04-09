@@ -17,6 +17,10 @@
 
 GLuint vertexbuffer, colorbuffer;
 GLuint programID;
+GLuint framebuffer;
+GLuint renderbuffers[3];
+GLuint depthbuffer;
+static const GLenum fboBuffs[] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2 };
 
 void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
 	if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
@@ -25,6 +29,78 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
 
 void sizeChangedCallback(GLFWwindow* window, int width, int height) {
 	glViewport(0, 0, width, height);
+}
+
+bool checkErrors(GLuint progName)
+{
+	bool bFoundError = false;
+	GLenum error = glGetError();
+
+	if (error != GL_NO_ERROR)
+	{
+		fprintf(stderr, "A GL Error has occured\n");
+		bFoundError = true;
+	}
+
+	GLenum fboStatus = glCheckFramebufferStatus(GL_DRAW_FRAMEBUFFER);
+
+	if (fboStatus != GL_FRAMEBUFFER_COMPLETE)
+	{
+		bFoundError = true;
+		fprintf(stderr, "The framebuffer is not complete - ");
+		switch (fboStatus)
+		{
+		case GL_FRAMEBUFFER_UNDEFINED:
+			// Oops, no window exists?
+			fprintf(stderr, "GL_FRAMEBUFFER_UNDEFINED\n");
+			break;
+		case GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT:
+			// Check the status of each attachment
+			fprintf(stderr, "GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT\n");
+			break;
+		case GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT:
+			// Attach at least one buffer to the FBO
+			fprintf(stderr, "GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT\n");
+			break;
+		case GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER:
+			// Check that all attachments enabled via
+			// glDrawBuffers exist in FBO
+			fprintf(stderr, "GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER\n");
+			break;
+		case GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER:
+			// Check that the buffer specified via
+			// glReadBuffer exists in FBO
+			fprintf(stderr, "GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER\n");
+			break;
+		case GL_FRAMEBUFFER_UNSUPPORTED:
+			// Reconsider formats used for attached buffers
+			fprintf(stderr, "GL_FRAMEBUFFER_UNSUPPORTED\n");
+			break;
+		case GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE:
+			// Make sure the number of samples for each 
+			// attachment is the same 
+			fprintf(stderr, "GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE\n");
+			break;
+		case GL_FRAMEBUFFER_INCOMPLETE_LAYER_TARGETS:
+			// Make sure the number of layers for each 
+			// attachment is the same 
+			fprintf(stderr, "GL_FRAMEBUFFER_INCOMPLETE_LAYER_TARGETS\n");
+			break;
+		}
+	}
+
+	if (progName != 0)
+	{
+		glValidateProgram(progName);
+		int iIsProgValid = 0;
+		glGetProgramiv(progName, GL_VALIDATE_STATUS, &iIsProgValid);
+		if (iIsProgValid == 0)
+		{
+			bFoundError = true;
+			fprintf(stderr, "The current program(%d) is not valid\n", progName);
+		}
+	}
+	return bFoundError;
 }
 
 void renderInit(GLFWwindow* window) {
@@ -112,7 +188,36 @@ void renderInit(GLFWwindow* window) {
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LESS);
 
-	programID = loadShaders("cube.vertexshader", "cube.fragmentshader");
+	programID = loadShaders("multibuffer.vertexshader", "multibuffer.fragmentshader");
+
+	int width, height;
+	glfwGetWindowSize(window, &width, &height);
+
+	// Create framebuffer
+	glGenFramebuffers(1, &framebuffer);
+
+	// Create depth renderbuffer
+	glGenRenderbuffers(1, &depthbuffer);
+	glBindRenderbuffer(GL_RENDERBUFFER, depthbuffer);
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, width, height);
+
+	// Create 3 color rednerbuffers
+	glGenRenderbuffers(3, renderbuffers);
+	glBindRenderbuffer(GL_RENDERBUFFER, renderbuffers[0]);
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_RGBA8, width, height);
+	glBindRenderbuffer(GL_RENDERBUFFER, renderbuffers[1]);
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_RGBA8, width, height);
+	glBindRenderbuffer(GL_RENDERBUFFER, renderbuffers[2]);
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_RGBA8, width, height);
+
+	// Attach all renderbuffers to FBO
+	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, framebuffer);
+	glFramebufferRenderbuffer(GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthbuffer);
+	glFramebufferRenderbuffer(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, renderbuffers[0]);
+	glFramebufferRenderbuffer(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_RENDERBUFFER, renderbuffers[1]);
+	glFramebufferRenderbuffer(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_RENDERBUFFER, renderbuffers[2]);
+
+	//GLenum fboStatus = glCheckFramebufferStatus(GL_DRAW_FRAMEBUFFER);
 
 	glGenBuffers(1, &vertexbuffer);
 	glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
@@ -121,9 +226,21 @@ void renderInit(GLFWwindow* window) {
 	glGenBuffers(1, &colorbuffer);
 	glBindBuffer(GL_ARRAY_BUFFER, colorbuffer);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(g_color_buffer_data), g_color_buffer_data, GL_STATIC_DRAW);
+	
+	//glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+
+	if (checkErrors(0))
+		exit(10);
 }
 
 void render(GLFWwindow* window) {
+	int width, height;
+	glfwGetWindowSize(window, &width, &height);
+
+	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, framebuffer);
+	glViewport(0, 0, width, height);
+	glDrawBuffers(3, fboBuffs);
+
 	glEnableVertexAttribArray(0);
 	glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
 	glVertexAttribPointer(
@@ -179,10 +296,38 @@ void render(GLFWwindow* window) {
 
 	glDisableVertexAttribArray(0);
 	glDisableVertexAttribArray(1);
+
+
+	glDisable(GL_DEPTH_TEST);
+
+	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+	glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffer);
+
+	// Copy greyscale output to the left half of the screen
+	glReadBuffer(GL_COLOR_ATTACHMENT2);
+
+	glBlitFramebuffer(0, 0, width/2, height,
+		              0, 0, width/2, height,
+		GL_COLOR_BUFFER_BIT, GL_NEAREST);
+	
+	// Copy the luminance adjusted color to the right half of the screen
+	glReadBuffer(GL_COLOR_ATTACHMENT1);
+	glBlitFramebuffer(width / 2, 0, width, height,
+		              width / 2, 0, width, height,
+		GL_COLOR_BUFFER_BIT, GL_LINEAR);
+
+	// Scale the unaltered image to the upper right of the screen
+	glReadBuffer(GL_COLOR_ATTACHMENT0);
+	glBlitFramebuffer(0, 0, width, width,
+		width - (int)(height*(0.2)), (int)(height*(0.8)),
+		width, height,
+		GL_COLOR_BUFFER_BIT, GL_LINEAR);
 }
 
 void destoryCallback(GLFWwindow* window) {
 	glDeleteBuffers(1, &vertexbuffer);
+	glDeleteBuffers(1, &colorbuffer);
+	glDeleteFramebuffers(1, &framebuffer);
 }
 
 int main() {

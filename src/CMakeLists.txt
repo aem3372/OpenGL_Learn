@@ -61,3 +61,13 @@ set(SRC_Camera
 	src/cube_move/cube.vertexshader
 	src/cube_move/cube.fragmentshader
 )
+
+# Multibuffer
+set(SRC_Multibuffer
+	src/multibuffer/main.cpp
+	src/multibuffer/Shader.h
+	src/multibuffer/Shader.cpp
+
+	src/multibuffer/multibuffer.vertexshader
+	src/multibuffer/multibuffer.fragmentshader
+)

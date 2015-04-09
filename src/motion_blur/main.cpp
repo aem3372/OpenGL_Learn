@@ -15,7 +15,6 @@
 
 #include "Shader.h"
 
-GLuint VertextArrayID;
 GLuint blurTextures[16];
 GLuint vertexbuffer, colorbuffer, pixelbuffer;
 GLuint texvertexbuffer, texcoordbuffer;
@@ -154,9 +153,6 @@ void renderInit(GLFWwindow* window) {
 	glEnable(GL_MULTISAMPLE);
 
 	programID = loadShaders("cube.vertexshader", "cube.fragmentshader");
-
-	glGenVertexArrays(1, &VertextArrayID);
-	glBindVertexArray(VertextArrayID);
 
 	glGenBuffers(1, &vertexbuffer);
 	glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);

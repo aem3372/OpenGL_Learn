@@ -82,5 +82,12 @@ target_link_libraries(camera
     ${ALL_LIBS}
 )
 
+# Multibuffer
+add_executable(multibuffer
+    ${SRC_Multibuffer}
+)
+target_link_libraries(multibuffer
+    ${ALL_LIBS}
+)
 
 SOURCE_GROUP(shaders REGULAR_EXPRESSION ".*/.*shader$" )

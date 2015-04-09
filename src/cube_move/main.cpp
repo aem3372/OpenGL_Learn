@@ -15,7 +15,7 @@
 
 #include "Shader.h"
 
-GLuint VertextArrayID;
+
 GLuint vertexbuffer, colorbuffer;
 GLuint programID;
 
@@ -114,9 +114,6 @@ void renderInit(GLFWwindow* window) {
 	glDepthFunc(GL_LESS);
 
 	programID = loadShaders("cube.vertexshader", "cube.fragmentshader");
-
-	glGenVertexArrays(1, &VertextArrayID);
-	glBindVertexArray(VertextArrayID);
 
 	glGenBuffers(1, &vertexbuffer);
 	glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);

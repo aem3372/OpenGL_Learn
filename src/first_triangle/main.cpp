@@ -11,7 +11,7 @@
 
 #include "Shader.h"
 
-GLuint VertextArrayID;
+
 GLuint vertexbuffer;
 GLuint programID;
 
@@ -31,9 +31,6 @@ void renderInit(GLFWwindow* window) {
 		 1.0f, -1.0f, 0.0f,
 		 0.0f,  1.0f, 0.0f,
 	};
-
-	glGenVertexArrays(1, &VertextArrayID);
-	glBindVertexArray(VertextArrayID);
 
 	glGenBuffers(1, &vertexbuffer);
 	glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
